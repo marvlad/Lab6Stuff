@@ -45,6 +45,45 @@ def plot1D_event(data, event_id, side, spare_channels):
     plt.ylabel('Amplitude [mV]')
     plt.show()
 
+def plot2D_eventAx(data, event_id, side, spare_channels, ax):
+   im = ax.imshow(get_event(data, event_id, side, spare_channels).astype(float).T,cmap='viridis', aspect='auto')
+   plt.colorbar(im, ax=ax).set_label('Amplitude [mV]')  # Add colorbar for reference
+   ax.invert_yaxis()
+   ax.set_title("Side {}".format(side))
+   ax.set_xlabel('Time [ns]')
+   if spare_channels == 0:
+       ax.set_ylabel('Strip #')
+   else:
+       ax.set_ylabel('Strip # + spare channels')
+
+def plot1D_eventAx(data, event_id, side, spare_channels, ax):
+    ax.plot(get_event(data, event_id, side, spare_channels))
+    if spare_channels == 0:
+        ax.set_title('Projetion , side {}'.format(side))
+    else:
+        ax.set_title('Projetion, side {}, + spare channels'.format(side))
+    ax.set_xlabel('Time [ns]')
+    ax.set_ylabel('Amplitude [mV]')
+
+def display_event(data, event_id, spare_channels):
+    # Create a figure and subplots
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 9))
+    
+    # Plot data on each subplot
+    plot2D_eventAx(data, event_id, 0, spare_channels, ax1)
+    plot2D_eventAx(data, event_id, 1, spare_channels, ax2)
+    plot1D_eventAx(data, event_id, 0, spare_channels, ax3)
+    plot1D_eventAx(data, event_id, 1, spare_channels, ax4)
+
+    # Add a general title to the canvas
+    fig.suptitle("Event {}".format(event_id), fontsize=16)
+
+    # Adjust layout
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()
+
 def ReadData(data_path, pedestal_path1, pedestal_path2, substract_ped):   
     # --------------------------------------------------------------------------------------------------
     # Read the event data into a pandas DataFrame
@@ -145,10 +184,11 @@ def main():
     event_data = ACDC2Strip(event_data)
     event_data = BaselineCorrection(event_data)
     
-    print(event_data[6])
-    plot1D_event(event_data, 4, 1, 1)
-    plot2D_event(event_data, 4, 1, 1)
+    #print(event_data[6])
+    #plot1D_event(event_data, 4, 1, 1)
+    #plot2D_event(event_data, 4, 1, 1)
+
+    display_event(event_data, 4, 1)
 
 if __name__ == "__main__":
     main()
-
