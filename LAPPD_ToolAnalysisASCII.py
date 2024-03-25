@@ -132,20 +132,23 @@ def BaselineCorrection(event_data):
     event_data[:, :, 32:62] -= baseline2 
     return event_data
 
+def main():
+    datapath = '/Users/marvinascenciososa/Desktop/pnfs_mrvn/mac/Desktop/Lab6_tests/python_proj/input/data/Ascii20241903_141434_10ev.txt'
+    ped1     = '/Users/marvinascenciososa/Desktop/pnfs_mrvn/mac/Desktop/Lab6_tests/python_proj/input/pedestal/ACDC31_needCheck.txt'
+    ped2     = '/Users/marvinascenciososa/Desktop/pnfs_mrvn/mac/Desktop/Lab6_tests/python_proj/input/pedestal/ACDC26_needCheck.txt'
 
-datapath = '/Users/marvinascenciososa/Desktop/pnfs_mrvn/mac/Desktop/Lab6_tests/python_proj/input/data/Ascii20241903_141434_10ev.txt'
-ped1     = '/Users/marvinascenciososa/Desktop/pnfs_mrvn/mac/Desktop/Lab6_tests/python_proj/input/pedestal/ACDC31_needCheck.txt'
-ped2     = '/Users/marvinascenciososa/Desktop/pnfs_mrvn/mac/Desktop/Lab6_tests/python_proj/input/pedestal/ACDC26_needCheck.txt'
+    pedestalsubstraction = 1
+    event_data = ReadData(datapath, ped1, ped2, pedestalsubstraction)
 
-pedestalsubstraction = 1
-event_data = ReadData(datapath, ped1, ped2, pedestalsubstraction)
+    event_data = ADC2Voltage(event_data)
+    event_data = ACDCmetaCorrection(event_data)
+    event_data = ACDC2Strip(event_data)
+    event_data = BaselineCorrection(event_data)
+    
+    print(event_data[6])
+    plot1D_event(event_data, 4, 1, 1)
+    plot2D_event(event_data, 4, 1, 1)
 
-event_data = ADC2Voltage(event_data)
-event_data = ACDCmetaCorrection(event_data)
-event_data = ACDC2Strip(event_data)
-event_data = BaselineCorrection(event_data)
- 
-print(event_data[6])
-plot1D_event(event_data, 4, 1, 1)
-plot2D_event(event_data, 4, 1, 1)
+if __name__ == "__main__":
+    main()
 
