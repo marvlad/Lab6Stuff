@@ -1,6 +1,10 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+from tqdm import tqdm
+import time
+import sys
 
 
 # Define the sequence of numbers (mapping ACDC to strip)
@@ -65,7 +69,10 @@ def plot1D_eventAx(data, event_id, side, spare_channels, ax):
     ax.set_xlabel('Time [ns]')
     ax.set_ylabel('Amplitude [mV]')
 
-def display_event(data, event_id, spare_channels):
+def display_event(data, event_id, spare_channels, show_display):
+    if show_display == 0:
+        plt.switch_backend('Agg')
+
     # Create a figure and subplots
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 9))
     
@@ -82,7 +89,11 @@ def display_event(data, event_id, spare_channels):
     plt.tight_layout()
 
     # Show the plot
-    plt.show()
+    if show_display == 1:
+        plt.show()
+    
+    plt.close()
+    return fig
 
 def ReadData(data_path, pedestal_path1, pedestal_path2, substract_ped):   
     # --------------------------------------------------------------------------------------------------
@@ -171,11 +182,28 @@ def BaselineCorrection(event_data):
     event_data[:, :, 32:62] -= baseline2 
     return event_data
 
+def Display_eventsPDF(event_data, spare_chn, nevent, output_name):
+    print("Plotting the events....")
+    # Create a PDF file to save the plots
+    plt.switch_backend('Agg')
+    with PdfPages(output_name+".pdf") as pdf:
+        # Initialize the progress bar
+        progress_bar = tqdm(total=nevent, desc="Progress", unit="iteration")
+        for i in range(nevent):
+            fig = display_event(event_data, i, spare_chn, 0)
+            pdf.savefig(fig)
+            progress_bar.update(1)
+        progress_bar.close()
+        print("Plotting done....")
+
 def main():
-    datapath = '/Users/marvinascenciososa/Desktop/pnfs_mrvn/mac/Desktop/Lab6_tests/python_proj/input/data/Ascii20241903_141434_10ev.txt'
+    nevents  = sys.argv[1]
+    datapath = sys.argv[2]
+    datapath = '/Users/marvinascenciososa/Desktop/pnfs_mrvn/mac/Desktop/Lab6_tests/python_proj/input/data/Ascii20241903_141434_100ev.txt'
     ped1     = '/Users/marvinascenciososa/Desktop/pnfs_mrvn/mac/Desktop/Lab6_tests/python_proj/input/pedestal/ACDC31_needCheck.txt'
     ped2     = '/Users/marvinascenciososa/Desktop/pnfs_mrvn/mac/Desktop/Lab6_tests/python_proj/input/pedestal/ACDC26_needCheck.txt'
 
+    output   = './Event_display'
     pedestalsubstraction = 1
     event_data = ReadData(datapath, ped1, ped2, pedestalsubstraction)
 
@@ -188,7 +216,19 @@ def main():
     #plot1D_event(event_data, 4, 1, 1)
     #plot2D_event(event_data, 4, 1, 1)
 
-    display_event(event_data, 4, 1)
+    #display_event(event_data, 4, 1, 1)
+    #Display_eventsPDF(event_data, 1, 10, output)
+    Display_eventsPDF(event_data, 1, nevents, output)
+
+
+    #plt.plot(event_data[:,:,32].T)
+    #plt.show()
+
+    #plt.imshow(event_data[:,:,32].astype(float).T,cmap='viridis', aspect='auto')
+    #plt.imshow(event_data[:,:,6].astype(float),cmap='viridis', aspect='auto')
+    #plt.colorbar(label='Amplitude [mV]')  # Add colorbar for reference
+    #plt.gca().invert_yaxis()
+    #plt.show()
 
 if __name__ == "__main__":
     main()
