@@ -13,10 +13,24 @@ from scipy.signal import find_peaks
 from matplotlib.colors import LogNorm
 from tqdm import tqdm
 
-BASE_PATH = 'the_path_here'
-ACDC_name = 'acdc_'
+BASE_PATH = '/Users/marvinascenciososa/Desktop/mezzanine/data/'
+ACDC_name = 'acdc_0'
 
 mezzanine_id = [24,25,26,27,28,29,18,19,20,21,22,23,12,13,14,15,16,17,6,7,8,9,10,11,0,1,2,3,4]
+
+def Plot1D():
+    print("plot..")
+
+def Plot2D(data, title, xl, yl, zl):
+    print("print...")
+    plt.imshow(data, cmap='viridis', interpolation='nearest')
+    cbar = plt.colorbar()
+    cbar.set_label(zl)
+    plt.grid(True, linestyle='--')
+    plt.title(title)
+    plt.xlabel(xl)
+    plt.ylabel(yl)
+    plt.show()
 
 class ACDC:
     def __init__(self, board, channel)-> None:
@@ -25,7 +39,7 @@ class ACDC:
         self.data = self.get_corrected_wf()
 
     def get_corrected_wf(self):
-        print("Loadding data from %s, ACDC %s and channel %s " % (BASE_PATH, self.board, self.channel)) 
+        print("Loadding data from %s, ACDC %s, channel %s " % (BASE_PATH, self.board, self.channel)) 
 
         # Calculate pedestals
         pedestal_files = sorted(glob(BASE_PATH + '%s%i/pedestal/*.txt' % (ACDC_name,self.board)))
@@ -136,39 +150,81 @@ class ACDC:
         rms = np.sqrt(np.mean(np.square(self.data[:, :, channel_id])))
         #print(rms)
         return rms
+
+    def get_RMS_channel_hist(self, channel_id):
+        #rms = np.sqrt(np.mean(np.square(self.data[e_id, :, 24])))
+        arr = []
+        for i in range(1,self.data.shape[0]):
+            rms = np.sqrt(np.mean(np.square(self.data[slice(i, i+1), :, channel_id])))
+            arr.append(rms)
+        # Plotting the histogram
+        plt.hist(arr, bins=100, edgecolor='black')  # Adjust bins as needed
+        plt.xlabel('RMS')
+        plt.ylabel('Events')
+        plt.title('RMS, ACDC %i, ACDC Ch. %i, Mezzanine Ch. %i' %(self.board, channel_id,  (self.channel + 1)))
+        plt.grid(True, linestyle='--')  # Optional grid
+
+        # Display the plot
+        plt.show()
     
     def get_RMS(self):
-        num_rows = self.data.shape[2]
         arr = []
-        for i in range(num_rows):
+        for i in range(self.data.shape[2]):
             arr.append(self.get_RMS_channel(i))
         return arr
 
-    #def get_min():
+    def get_min_list(self, channel_id):
+        min_arr = []
+        for ev in range(1, self.data.shape[0]):
+            e_id = slice(ev , ev + 1)
+            min = np.min(self.data[e_id, :, channel_id])
+            min_arr.append(min)
+        return min_arr
+
+    def get_min_av(self, channel_id):
+        min_arr = self.get_min_list(channel_id)
+        av_min = np.mean(min_arr)
+        return av_min
+
+    def get_Min_channel_hist(self, channel_id):
+        #rms = np.sqrt(np.mean(np.square(self.data[e_id, :, 24])))
+        arr = self.get_min_list(channel_id)
+        plt.hist(arr, bins=80, edgecolor='black')  # Adjust bins as needed
+        plt.xlabel('Min')
+        plt.ylabel('Events')
+        plt.title('Min, ACDC %i, ACDC Ch. %i, Mezzanine Ch. %i' %(self.board, channel_id,  (self.channel + 1)))
+        plt.grid(True, linestyle='--')  # Optional grid
+
+        # Display the plot
+        plt.show()
+
+    def get_min(self):
+        arr = []
+        for i in range(self.data.shape[2]):
+            arr.append(self.get_min_av(i))
+        return arr 
        
 
 class ACDC_analysis():
     def __init__(self, board)-> None:
         self.board = board
-        self.rms_list = self.get_rms() 
+        self.rms_list, self.min_list = self.get_arrays() 
 
-    def get_rms(self):
+    def get_arrays(self):
         rms_array = []
+        min_array = []
         for b in range(29):
             c_acdc = ACDC(self.board, b)
             rms_array.append(c_acdc.get_RMS())
+            min_array.append(c_acdc.get_min())
             del c_acdc
-        return rms_array
+        return rms_array, min_array
     
     def plot_rms(self):
-        plt.imshow(self.rms_list, cmap='viridis', interpolation='nearest')
-        cbar = plt.colorbar()
-        cbar.set_label('RMS')
-        plt.grid(True, linestyle='--')
-        plt.title('ACDC %i' % self.board)
-        plt.xlabel('ACDC channels')
-        plt.ylabel('Mezzanine channels')
-        plt.show()
+        Plot2D(self.rms_list, 'ACDC %i' % self.board, 'ACDC channels', 'Mezzanine channels', 'RMS')
+
+    def plot_min(self):
+        Plot2D(self.min_list, 'ACDC %i' % self.board, 'ACDC channels', 'Mezzanine channels', 'Average Min')
 
 
 def main() -> None:
@@ -197,13 +253,21 @@ def main() -> None:
     # Print multiple event displays <arg> (number of events, output path)
     #my_acdc.event_displayPDF(50, output_n)
 
-    # Get RMS
-    #my_acdc.get_RMS()
+    # Get RMS channel hist
+    #my_acdc.get_RMS_channel_hist(12)
+
+    # Get Min channels hist
+    #my_acdc.get_Min_channel_hist(5)
 
     # analize full data set
     # ------------------------------------------------------------------------
-    ana = ACDC_analysis(35)
+    ana = ACDC_analysis(5)
+
+    # Plot the RMS of the full set (all 29 files)
     ana.plot_rms()
+
+    # Plot the Min of the full set (all 29 files)
+    ana.plot_min()
 
 if __name__ == "__main__":
     main()
