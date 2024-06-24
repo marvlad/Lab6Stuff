@@ -12,18 +12,36 @@ from matplotlib.backends.backend_pdf import PdfPages
 from scipy.signal import find_peaks
 from matplotlib.colors import LogNorm
 from tqdm import tqdm
+import warnings
+from matplotlib import MatplotlibDeprecationWarning
 
-BASE_PATH = 'you_path_here'
-ACDC_name = 'acdc_0'
+# Suppress the specific MatplotlibDeprecationWarning
+warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
+
+BASE_PATH = '_path_here_'
+ACDC_name = 'acdc_'
+OUTPUT = './plots/'
 
 mezzanine_id = [24,25,26,27,28,29,18,19,20,21,22,23,12,13,14,15,16,17,6,7,8,9,10,11,0,1,2,3,4]
 
-def Plot1D():
-    print("plot..")
+def Plot1D(data, title, xl, yl, filename, show):
+    plt.plot(data)
+    plt.grid(True, linestyle='--')
+    plt.title(title)
+    plt.xlabel(xl)
+    plt.ylabel(yl)
+    if show == 1:
+        plt.show()
+    else:
+        plt.savefig(filename, format='pdf')
+    plt.close()
 
-def Plot2D(data, title, xl, yl, zl):
+def Plot2D(data, title, xl, yl, zl, ed):
     print("print...")
-    plt.imshow(data, cmap='viridis', interpolation='nearest')
+    if ed == 0:
+        plt.imshow(data, cmap='viridis', interpolation='nearest')
+    else:
+        plt.imshow(data, cmap='viridis', aspect=7.0) 
     cbar = plt.colorbar()
     cbar.set_label(zl)
     plt.grid(True, linestyle='--')
@@ -31,6 +49,19 @@ def Plot2D(data, title, xl, yl, zl):
     plt.xlabel(xl)
     plt.ylabel(yl)
     plt.show()
+
+def Plot1D_hist(arr, nbins, title, xl, yl, filename, show):
+    plt.hist(arr, bins=nbins, edgecolor='black')  # Adjust bins as needed
+    plt.xlabel(xl)
+    plt.ylabel(yl)
+    plt.title(title)
+    plt.grid(True, linestyle='--')  # Optional grid
+    if show == 1:
+        plt.show()
+    else:
+        plt.savefig(filename, format='pdf')
+    plt.close() 
+
 
 class ACDC:
     def __init__(self, board, channel)-> None:
@@ -71,39 +102,22 @@ class ACDC:
         r[r<0] += dst.shape[1]
         ci = ci - r[:,np.newaxis]
         dss = ds[ri,ci]
-     
+
         return dss
 
     def plot_event(self, event_id):
         e_id = slice(event_id, event_id + 1)
-        plt.imshow(self.data[e_id,:,0:30].T, cmap='viridis', aspect=7.0)
-        cbar = plt.colorbar()
-        cbar.set_label('Amplitude [mV]')
-        plt.grid(True)
-        plt.title('Event %i' % event_id)
-        plt.xlabel('Time [ns]')
-        plt.ylabel('ACDC Channels')
-        plt.show()
+        Plot2D(self.data[e_id,:,0:30].T, 'Event %i' % event_id, 'Time [ns]', 'ACDC Channels', 'Amplitude [mV]', 1)
     
-    def plot_event_ACDCchannel(self, event_id, acdc_channel):
+    def plot_event_ACDCchannel(self, event_id, acdc_channel, filename, show):
         e_id = slice(event_id, event_id + 1)
-        plt.plot(self.data[e_id,:,acdc_channel].swapaxes(0,1))
-        plt.grid(True, linestyle='--')
-        plt.title('Event %i' % event_id)
-        plt.xlabel('Time [ns]')
-        plt.ylabel('Amplitude [mV]')
-        plt.show()
+        Plot1D(self.data[e_id,:,acdc_channel].swapaxes(0,1), plt.title('Event %i' % event_id), 'Time [ns]', 'Amplitude [mV]', filename, show) 
      
-    def plot_events_ACDCchannel(self, event1, event2, acdc_channel):
+    def plot_events_ACDCchannel(self, event1, event2, acdc_channel, filename, show):
         e_id = slice(event1, event2)
-        plt.plot(self.data[e_id,:,acdc_channel].swapaxes(0,1))
-        plt.grid(True, linestyle='--')
-        plt.title('Events from %i to %i' % (event1,event2))
-        plt.xlabel('Time [ns]')
-        plt.ylabel('Amplitude [mV]')
-        plt.show()
+        Plot1D(self.data[e_id,:,acdc_channel].swapaxes(0,1), 'ACDC %i, Events from %i to %i' % (self.board, event1,event2), 'Time [ns]', 'Amplitude [mV]', filename, show)
 
-    def event_display(self, event_id, show_event):
+    def event_display(self, event_id, filename, show_event):
         # Create a figure with two subplots side by side
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
@@ -132,6 +146,8 @@ class ACDC:
         if show_event == 1:
             plt.show()
 
+        if show_event == 2:
+           plt.savefig(filename, format='pdf') 
         plt.close()
         return fig
     
@@ -140,7 +156,7 @@ class ACDC:
         with PdfPages(output_name+".pdf") as pdf:
             progress_bar = tqdm(total=nevent, desc="Progress", unit="iteration")
             for i in range(nevent):
-                fig = self.event_display(i, 0)
+                fig = self.event_display(i, 'none', 0)
                 pdf.savefig(fig)
                 progress_bar.update(1)
             progress_bar.close()
@@ -151,21 +167,14 @@ class ACDC:
         #print(rms)
         return rms
 
-    def get_RMS_channel_hist(self, channel_id):
+    def get_RMS_channel_hist(self, channel_id, filename, show):
         #rms = np.sqrt(np.mean(np.square(self.data[e_id, :, 24])))
         arr = []
         for i in range(1,self.data.shape[0]):
             rms = np.sqrt(np.mean(np.square(self.data[slice(i, i+1), :, channel_id])))
             arr.append(rms)
         # Plotting the histogram
-        plt.hist(arr, bins=100, edgecolor='black')  # Adjust bins as needed
-        plt.xlabel('RMS')
-        plt.ylabel('Events')
-        plt.title('RMS, ACDC %i, ACDC Ch. %i, Mezzanine Ch. %i' %(self.board, channel_id,  (self.channel + 1)))
-        plt.grid(True, linestyle='--')  # Optional grid
-
-        # Display the plot
-        plt.show()
+        Plot1D_hist(arr, 100, 'RMS, ACDC %i, ACDC Ch. %i, Mezzanine Ch. %i' %(self.board, channel_id,  (self.channel + 1)), 'RMS', 'Events', filename, show)
     
     def get_RMS(self):
         arr = []
@@ -186,24 +195,31 @@ class ACDC:
         av_min = np.mean(min_arr)
         return av_min
 
-    def get_Min_channel_hist(self, channel_id):
-        #rms = np.sqrt(np.mean(np.square(self.data[e_id, :, 24])))
+    def get_Min_channel_hist(self, channel_id, filename, show):
         arr = self.get_min_list(channel_id)
-        plt.hist(arr, bins=80, edgecolor='black')  # Adjust bins as needed
-        plt.xlabel('Min')
-        plt.ylabel('Events')
-        plt.title('Min, ACDC %i, ACDC Ch. %i, Mezzanine Ch. %i' %(self.board, channel_id,  (self.channel + 1)))
-        plt.grid(True, linestyle='--')  # Optional grid
-
-        # Display the plot
-        plt.show()
+        Plot1D_hist(arr, 80, 'Min, ACDC %i, ACDC Ch. %i, Mezzanine Ch. %i' %(self.board, channel_id,  (self.channel + 1)), 'Min', 'Events', filename, show) 
 
     def get_min(self):
         arr = []
         for i in range(self.data.shape[2]):
             arr.append(self.get_min_av(i))
-        return arr 
-       
+        return arr
+
+    def generate_report_input(self, nevents):
+        print(' We are using %i events in ACDC %i, mezzanine channel %i' % (nevents, self.board, self.channel))
+
+        print(' Plotting the RMS and Min for Mezzanine channel %i...' % self.channel) 
+        for channel_id in range(self.data.shape[2]):
+            output_rms_names = OUTPUT + 'RMS_ACDC_%i_MCh_%i_ACDCChn_%i.pdf' %(self.board, self.channel, channel_id)
+            output_min_names = OUTPUT + 'Min_ACDC_%i_MCh_%i_ACDCChn_%i.pdf' %(self.board, self.channel, channel_id)
+            name_ch_events = OUTPUT + 'MultiEvents_ACDC_%i_MCh_%i_ACDCChn_%i.pdf' %(self.board, self.channel, channel_id)
+            name_evD = OUTPUT + 'EventDisplay_ACDC_%i_MCh_%i_ACDCChn_%i.pdf' %(self.board, self.channel, channel_id)
+            self.get_RMS_channel_hist(channel_id, output_rms_names, 0)
+            self.get_Min_channel_hist(channel_id, output_min_names, 0)
+            self.plot_events_ACDCchannel(1,nevents, channel_id, name_ch_events, 0)
+            for ev_id in range(1, 20):
+                self.event_display(ev_id, name_evD, 2)
+            
 
 class ACDC_analysis():
     def __init__(self, board)-> None:
@@ -221,10 +237,10 @@ class ACDC_analysis():
         return rms_array, min_array
     
     def plot_rms(self):
-        Plot2D(self.rms_list, 'ACDC %i' % self.board, 'ACDC channels', 'Mezzanine channels', 'RMS')
+        Plot2D(self.rms_list, 'ACDC %i' % self.board, 'ACDC channels', 'Mezzanine channels', 'RMS', 0)
 
     def plot_min(self):
-        Plot2D(self.min_list, 'ACDC %i' % self.board, 'ACDC channels', 'Mezzanine channels', 'Average Min')
+        Plot2D(self.min_list, 'ACDC %i' % self.board, 'ACDC channels', 'Mezzanine channels', 'Average Min', 0)
 
 
 def main() -> None:
@@ -236,7 +252,7 @@ def main() -> None:
     # ------------------------------------------------------------------------
     #output_n = "./Scan_events"
     # Get the ACDC data <arg> (ACDC board_id, signal_in_mezzanine_channel)
-    #my_acdc = ACDC(35,0)
+    my_acdc = ACDC(35,0)
 
     # Plot a single event <arg> (event_id)
     #my_acdc.plot_event(1)
@@ -245,7 +261,7 @@ def main() -> None:
     #my_acdc.plot_event_ACDCchannel(1,5)
 
     # Plot multple events same ACDC channel, <arg> (event_1, event_2, channel_id) 
-    #my_acdc.plot_events_ACDCchannel(1,10,5)
+    #my_acdc.plot_events_ACDCchannel(1,50,5)
 
     # Event display <arg> (event id, show_plot yes, 1 or no 0)
     #my_acdc.event_display(1, 1)
@@ -259,15 +275,18 @@ def main() -> None:
     # Get Min channels hist
     #my_acdc.get_Min_channel_hist(5)
 
+    # Generate report v1
+    my_acdc.generate_report_input(10)
+
     # analize full data set
     # ------------------------------------------------------------------------
-    ana = ACDC_analysis(5)
+    #ana = ACDC_analysis(5)
 
     # Plot the RMS of the full set (all 29 files)
-    ana.plot_rms()
+    #ana.plot_rms()
 
     # Plot the Min of the full set (all 29 files)
-    ana.plot_min()
+    #ana.plot_min()
 
 if __name__ == "__main__":
     main()
