@@ -13,7 +13,7 @@ from scipy.signal import find_peaks
 from matplotlib.colors import LogNorm
 from tqdm import tqdm
 
-BASE_PATH = '/Users/marvinascenciososa/Desktop/mezzanine/data/'
+BASE_PATH = 'you_path_here'
 ACDC_name = 'acdc_0'
 
 mezzanine_id = [24,25,26,27,28,29,18,19,20,21,22,23,12,13,14,15,16,17,6,7,8,9,10,11,0,1,2,3,4]
