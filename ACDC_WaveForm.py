@@ -14,17 +14,64 @@ from matplotlib.colors import LogNorm
 from tqdm import tqdm
 import warnings
 from matplotlib import MatplotlibDeprecationWarning
+import os
 
 # Suppress the specific MatplotlibDeprecationWarning
 warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
 
-BASE_PATH = '_path_here_'
-ACDC_name = 'acdc_'
+BASE_PATH = '_you_path_here_'
+ACDC_name = 'acdc_0'
 OUTPUT = './plots/'
 
 mezzanine_id = [24,25,26,27,28,29,18,19,20,21,22,23,12,13,14,15,16,17,6,7,8,9,10,11,0,1,2,3,4]
 
+def create_latex_file(number, sections, plots_directory, output):
+    content = f"""\\documentclass{{beamer}} 
+\\usepackage{{hyperref}}
+\\usepackage[utf8]{{inputenc}}
+\\usepackage{{xcolor}}
+\\usepackage{{pgffor}} 
+\\begin{{document}} 
+\\title{{ACDC {number} Report}} 
+\\date{{\\today}} 
+\\frame{{\\titlepage}}
+\\begin{{frame}}{{Outline}}
+    \\tableofcontents
+\\end{{frame}}
+\\def\\sections{{{','.join(map(str, range(29)))}}}
+\\def\\eventdisplay{{{','.join(map(str, sections))}}}
+\\section{{Total RMS and Average Min}}
+\\begin{{frame}}{{ACDC {number}, Total RMS and avergage min}}
+    \\includegraphics[scale=0.32]{{{plots_directory}/Total_RMS.pdf}}
+    \\includegraphics[scale=0.32]{{{plots_directory}/Total_AvMin.pdf}}
+\\end{{frame}}
+\\foreach \\var in \\sections {{
+    \\section{{Mezzanine channel \\var}}
+    \\subsection{{RMS histograms}}
+    \\begin{{frame}}{{RMS, Mezzanine channel \\var}}
+        \\includegraphics[scale=0.21]{{{plots_directory}/RMS_ACDC_{number}_MCh_\\var.pdf}} 
+    \\end{{frame}}
+    \\subsection{{Average Min histograms}}
+    \\begin{{frame}}{{Av Min, Mezzanine channel \\var}}
+        \\includegraphics[scale=0.21]{{{plots_directory}/Min_ACDC_{number}_MCh_\\var.pdf}} 
+    \\end{{frame}}
+    \\subsection{{MultiEvent 1D display, 10 events per plot}}
+    \\begin{{frame}}{{MultiEvents, Mezzanine channel \\var}}
+        \\includegraphics[scale=0.21]{{{plots_directory}/MultiEvents_ACDC_{number}_MCh_\\var.pdf}} 
+    \\end{{frame}}
+    \\foreach \\ed in \\eventdisplay {{
+        \\begin{{frame}}{{Mezzanine channel \\var, event \\ed}}
+            \\includegraphics[scale=0.3]{{{plots_directory}/EventDisplay_\\ed_ACDC_{number}_MCh_\\var.pdf}} 
+        \\end{{frame}}
+    }}
+}}
+\\end{{document}}
+"""
+    with open(output, "w") as file:
+        file.write(content)
+
 def Plot1D(data, title, xl, yl, filename, show):
+    plt.switch_backend('Agg')
     plt.plot(data)
     plt.grid(True, linestyle='--')
     plt.title(title)
@@ -32,11 +79,15 @@ def Plot1D(data, title, xl, yl, filename, show):
     plt.ylabel(yl)
     if show == 1:
         plt.show()
-    else:
-        plt.savefig(filename, format='pdf')
-    plt.close()
 
-def Plot2D(data, title, xl, yl, zl, ed):
+    if show == 2:
+        plt.savefig(filename, dpi=150)
+
+    plt.close()
+    return plt
+
+def Plot2D(data, title, xl, yl, zl, ed, filename):
+    plt.switch_backend('Agg')
     print("print...")
     if ed == 0:
         plt.imshow(data, cmap='viridis', interpolation='nearest')
@@ -48,9 +99,12 @@ def Plot2D(data, title, xl, yl, zl, ed):
     plt.title(title)
     plt.xlabel(xl)
     plt.ylabel(yl)
-    plt.show()
+    plt.savefig(filename)
+    plt.close()
+    #plt.show()
 
 def Plot1D_hist(arr, nbins, title, xl, yl, filename, show):
+    plt.switch_backend('Agg')
     plt.hist(arr, bins=nbins, edgecolor='black')  # Adjust bins as needed
     plt.xlabel(xl)
     plt.ylabel(yl)
@@ -58,10 +112,12 @@ def Plot1D_hist(arr, nbins, title, xl, yl, filename, show):
     plt.grid(True, linestyle='--')  # Optional grid
     if show == 1:
         plt.show()
-    else:
-        plt.savefig(filename, format='pdf')
-    plt.close() 
 
+    if show == 2:
+        plt.savefig(filename)
+    
+    plt.close()
+    return plt
 
 class ACDC:
     def __init__(self, board, channel)-> None:
@@ -115,9 +171,10 @@ class ACDC:
      
     def plot_events_ACDCchannel(self, event1, event2, acdc_channel, filename, show):
         e_id = slice(event1, event2)
-        Plot1D(self.data[e_id,:,acdc_channel].swapaxes(0,1), 'ACDC %i, Events from %i to %i' % (self.board, event1,event2), 'Time [ns]', 'Amplitude [mV]', filename, show)
+        Plot1D(self.data[e_id,:,acdc_channel].swapaxes(0,1), 'ACDC %i, %i, Events from %i to %i' % (self.board, acdc_channel, event1,event2), 'Time [ns]', 'Amplitude [mV]', filename, show)
 
     def event_display(self, event_id, filename, show_event):
+        plt.switch_backend('Agg')
         # Create a figure with two subplots side by side
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
@@ -147,13 +204,13 @@ class ACDC:
             plt.show()
 
         if show_event == 2:
-           plt.savefig(filename, format='pdf') 
+           plt.savefig(filename) 
         plt.close()
         return fig
     
-    def event_displayPDF(self, nevent, output_name):
-        plt.switch_backend('Agg')
-        with PdfPages(output_name+".pdf") as pdf:
+    def event_displaypdf(self, nevent, output_name):
+        plt.switch_backend('Agg') 
+        with pdfPages(output_name+".pdf") as pdf:
             progress_bar = tqdm(total=nevent, desc="Progress", unit="iteration")
             for i in range(nevent):
                 fig = self.event_display(i, 'none', 0)
@@ -174,7 +231,7 @@ class ACDC:
             rms = np.sqrt(np.mean(np.square(self.data[slice(i, i+1), :, channel_id])))
             arr.append(rms)
         # Plotting the histogram
-        Plot1D_hist(arr, 100, 'RMS, ACDC %i, ACDC Ch. %i, Mezzanine Ch. %i' %(self.board, channel_id,  (self.channel + 1)), 'RMS', 'Events', filename, show)
+        Plot1D_hist(arr, 100, 'RMS_B%i_ACh%i_MCh%i' %(self.board, channel_id, self.channel), 'RMS', 'Events', filename, show)
     
     def get_RMS(self):
         arr = []
@@ -197,7 +254,7 @@ class ACDC:
 
     def get_Min_channel_hist(self, channel_id, filename, show):
         arr = self.get_min_list(channel_id)
-        Plot1D_hist(arr, 80, 'Min, ACDC %i, ACDC Ch. %i, Mezzanine Ch. %i' %(self.board, channel_id,  (self.channel + 1)), 'Min', 'Events', filename, show) 
+        Plot1D_hist(arr, 80, 'Min_B%i_ACh%i_MCh%i' %(self.board, channel_id, self.channel), 'Min', 'Events', filename, show) 
 
     def get_min(self):
         arr = []
@@ -205,20 +262,58 @@ class ACDC:
             arr.append(self.get_min_av(i))
         return arr
 
-    def generate_report_input(self, nevents):
-        print(' We are using %i events in ACDC %i, mezzanine channel %i' % (nevents, self.board, self.channel))
+    def full_channel_RMS(self, filename):
+        plt.switch_backend('Agg')
+        print(filename)
+        fig, axs = plt.subplots(5, 6, figsize=(20, 15))  # Adjust figsize as needed
+        axs = axs.flatten()
+        for i, ax in enumerate(axs):
+            plot_obj = self.get_RMS_channel_hist(i, 'none', 0)
+            plt.sca(ax)  # Set the current axis to the one we want to plot on
+            
+        fig.tight_layout()
+        plt.savefig(filename, transparent=False)
+        plt.close()
 
-        print(' Plotting the RMS and Min for Mezzanine channel %i...' % self.channel) 
-        for channel_id in range(self.data.shape[2]):
-            output_rms_names = OUTPUT + 'RMS_ACDC_%i_MCh_%i_ACDCChn_%i.pdf' %(self.board, self.channel, channel_id)
-            output_min_names = OUTPUT + 'Min_ACDC_%i_MCh_%i_ACDCChn_%i.pdf' %(self.board, self.channel, channel_id)
-            name_ch_events = OUTPUT + 'MultiEvents_ACDC_%i_MCh_%i_ACDCChn_%i.pdf' %(self.board, self.channel, channel_id)
-            name_evD = OUTPUT + 'EventDisplay_ACDC_%i_MCh_%i_ACDCChn_%i.pdf' %(self.board, self.channel, channel_id)
-            self.get_RMS_channel_hist(channel_id, output_rms_names, 0)
-            self.get_Min_channel_hist(channel_id, output_min_names, 0)
-            self.plot_events_ACDCchannel(1,nevents, channel_id, name_ch_events, 0)
-            for ev_id in range(1, 20):
-                self.event_display(ev_id, name_evD, 2)
+    def full_channel_Min(self, filename):
+        plt.switch_backend('Agg')
+        print(filename)
+        fig, axs = plt.subplots(5, 6, figsize=(20, 15))  # Adjust figsize as needed
+        axs = axs.flatten()
+        for i, ax in enumerate(axs):
+            plot_obj = self.get_Min_channel_hist(i, 'none', 0)
+            plt.sca(ax)  # Set the current axis to the one we want to plot on
+            
+        fig.tight_layout()
+        plt.savefig(filename)
+        plt.close()
+
+    def full_channel_eventScan(self, filename, nevents):
+        plt.switch_backend('Agg')
+        print(filename)
+        fig, axs = plt.subplots(5, 6, figsize=(20, 15))  # Adjust figsize as needed
+        axs = axs.flatten()
+        for i, ax in enumerate(axs):
+            plot_obj = self.plot_events_ACDCchannel(1,nevents,i, 'none', 0)
+            plt.sca(ax)  # Set the current axis to the one we want to plot on
+            
+        fig.tight_layout()
+        plt.savefig(filename)
+        plt.close()  
+        
+
+    def generate_report_input(self, nevents):
+        print(' We are using input inform plots for ACDC %i, mezzanine channel %i' % (self.board, self.channel))
+        output_rms_names = OUTPUT + 'RMS_ACDC_%i_MCh_%i.pdf' %(self.board, self.channel)
+        output_min_names = OUTPUT + 'Min_ACDC_%i_MCh_%i.pdf' %(self.board, self.channel)
+        name_ch_events = OUTPUT + 'MultiEvents_ACDC_%i_MCh_%i.pdf' %(self.board, self.channel)
+        self.full_channel_RMS(output_rms_names)
+        self.full_channel_Min(output_min_names)
+        self.full_channel_eventScan(name_ch_events, nevents)
+        print('ploting %i event displays' % nevents)
+        for ev_id in range(1, 20):
+            name_evD = OUTPUT + 'EventDisplay_%i_ACDC_%i_MCh_%i.pdf' %(ev_id, self.board, self.channel)
+            self.event_display(ev_id, name_evD, 2) 
             
 
 class ACDC_analysis():
@@ -233,14 +328,19 @@ class ACDC_analysis():
             c_acdc = ACDC(self.board, b)
             rms_array.append(c_acdc.get_RMS())
             min_array.append(c_acdc.get_min())
+            c_acdc.generate_report_input(10)
             del c_acdc
         return rms_array, min_array
     
     def plot_rms(self):
-        Plot2D(self.rms_list, 'ACDC %i' % self.board, 'ACDC channels', 'Mezzanine channels', 'RMS', 0)
+        Plot2D(self.rms_list, 'ACDC %i' % self.board, 'ACDC channels', 'Mezzanine channels', 'RMS', 0, './plots/Total_RMS.pdf')
 
     def plot_min(self):
-        Plot2D(self.min_list, 'ACDC %i' % self.board, 'ACDC channels', 'Mezzanine channels', 'Average Min', 0)
+        Plot2D(self.min_list, 'ACDC %i' % self.board, 'ACDC channels', 'Mezzanine channels', 'Average Min', 0, './plots/Total_AvMin.pdf')
+    
+    def get_plots(self):
+        self.plot_rms()
+        self.plot_min()
 
 
 def main() -> None:
@@ -248,11 +348,11 @@ def main() -> None:
 
     # Examples for simple data set
 
-    # analize single data set
+    # analyze a single data set
     # ------------------------------------------------------------------------
     #output_n = "./Scan_events"
     # Get the ACDC data <arg> (ACDC board_id, signal_in_mezzanine_channel)
-    my_acdc = ACDC(35,0)
+    #my_acdc = ACDC(35,0)
 
     # Plot a single event <arg> (event_id)
     #my_acdc.plot_event(1)
@@ -267,7 +367,7 @@ def main() -> None:
     #my_acdc.event_display(1, 1)
 
     # Print multiple event displays <arg> (number of events, output path)
-    #my_acdc.event_displayPDF(50, output_n)
+    #my_acdc.event_displaypdf(50, output_n)
 
     # Get RMS channel hist
     #my_acdc.get_RMS_channel_hist(12)
@@ -276,9 +376,12 @@ def main() -> None:
     #my_acdc.get_Min_channel_hist(5)
 
     # Generate report v1
-    my_acdc.generate_report_input(10)
+    #my_acdc.generate_report_input(10)
 
-    # analize full data set
+    #my_acdc.full_channel_Min('./test.pdf')
+    
+    #my_acdc.full_channel_eventScan('./test.pdf', 10)
+    # analyze the full data set
     # ------------------------------------------------------------------------
     #ana = ACDC_analysis(5)
 
@@ -287,6 +390,10 @@ def main() -> None:
 
     # Plot the Min of the full set (all 29 files)
     #ana.plot_min()
+
+    #ana.get_plots()
+    create_latex_file(5, {1, 2, 3, 4, 5, 6}, "../plots","./report/report.tex")
+    os.system("cd ./report && ls -lrt && pdflatex report.tex && open report.pdf")
 
 if __name__ == "__main__":
     main()
