@@ -4,7 +4,7 @@ Create the image, run and execute, example:
 
 In the path where the Dockerfile is
 ```javascript
-docker build -it acdc
+docker build -it acdc ./
 ```
 
 Run the docker mounting the data file
