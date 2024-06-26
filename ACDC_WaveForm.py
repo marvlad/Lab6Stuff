@@ -20,7 +20,7 @@ import sys
 # Suppress the specific MatplotlibDeprecationWarning
 warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
 
-BASE_PATH = '_you_path_here_'
+BASE_PATH = '/Users/marvinascenciososa/Desktop/mezzanine/data/'
 ACDC_name = 'acdc_0'
 OUTPUT = './plots/'
 REPORT = './report/'
@@ -364,7 +364,7 @@ def main() -> None:
 
     # Examples for simple data set
 
-    # analize single data set
+    # analyze a single data set
     # ------------------------------------------------------------------------
     #output_n = "./Scan_events"
     # Get the ACDC data <arg> (ACDC board_id, signal_in_mezzanine_channel)
@@ -397,7 +397,8 @@ def main() -> None:
     #my_acdc.full_channel_Min('./test.pdf')
     
     #my_acdc.full_channel_eventScan('./test.pdf', 10)
-    # analize full data set
+
+    # analyze the full data set
     # ------------------------------------------------------------------------
     #ana = ACDC_analysis(5)
 
