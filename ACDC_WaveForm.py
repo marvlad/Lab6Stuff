@@ -301,7 +301,6 @@ class ACDC:
         plt.savefig(filename)
         plt.close()  
         
-
     def generate_report_input(self, nevents):
         print(' We are using input inform plots for ACDC %i, mezzanine channel %i' % (self.board, self.channel))
         output_rms_names = OUTPUT + 'RMS_ACDC_%i_MCh_%i.pdf' %(self.board, self.channel)
@@ -348,7 +347,6 @@ class ACDC_analysis:
     def get_plots(self):
         self.plot_rms()
         self.plot_min()
-
 
 
 def main() -> None:
@@ -421,7 +419,7 @@ def main() -> None:
         sys.exit()
 
     create_latex_file(5, {1, 2, 3, 4, 5, 6}, "../plots","./report/report.tex")
-    os.system("cd ./report && ls -lrt && pdflatex report.tex > /dev/null 2>&1 && find . -maxdepth 1 -name 'report.*' ! -name 'report.pdf' -exec rm {} \;")
+    os.system(r"cd ./report && ls -lrt && pdflatex report.tex > /dev/null 2>&1 && find . -maxdepth 1 -name 'report.*' ! -name 'report.pdf' -exec rm {} \;")
 
 if __name__ == "__main__":
     main()
