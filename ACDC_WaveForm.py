@@ -16,6 +16,7 @@ import warnings
 from matplotlib import MatplotlibDeprecationWarning
 import os
 import sys
+import concurrent.futures
 
 # Suppress the specific MatplotlibDeprecationWarning
 warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
@@ -73,7 +74,6 @@ def create_latex_file(number, sections, plots_directory, output):
         file.write(content)
 
 def Plot1D(data, title, xl, yl, filename, show):
-    plt.switch_backend('Agg')
     plt.plot(data)
     plt.grid(True, linestyle='--')
     plt.title(title)
@@ -89,7 +89,6 @@ def Plot1D(data, title, xl, yl, filename, show):
     return plt
 
 def Plot2D(data, title, xl, yl, zl, ed, filename):
-    plt.switch_backend('Agg')
     print("print...")
     if ed == 0:
         plt.imshow(data, cmap='viridis', interpolation='nearest')
@@ -106,7 +105,6 @@ def Plot2D(data, title, xl, yl, zl, ed, filename):
     #plt.show()
 
 def Plot1D_hist(arr, nbins, title, xl, yl, filename, show):
-    plt.switch_backend('Agg')
     plt.hist(arr, bins=nbins, edgecolor='black')  # Adjust bins as needed
     plt.xlabel(xl)
     plt.ylabel(yl)
@@ -318,20 +316,27 @@ class ACDC:
             self.event_display(ev_id, name_evD, 2) 
             
 
-class ACDC_analysis():
-    def __init__(self, board)-> None:
+class ACDC_analysis:
+    def __init__(self, board) -> None:
         self.board = board
         self.rms_list, self.min_list = self.get_arrays() 
+
+    def get_acdc_data(self, b):
+        c_acdc = ACDC(self.board, b)
+        rms = c_acdc.get_RMS()
+        min_val = c_acdc.get_min()
+        c_acdc.generate_report_input(10)
+        del c_acdc
+        return rms, min_val
 
     def get_arrays(self):
         rms_array = []
         min_array = []
-        for b in range(29):
-            c_acdc = ACDC(self.board, b)
-            rms_array.append(c_acdc.get_RMS())
-            min_array.append(c_acdc.get_min())
-            c_acdc.generate_report_input(10)
-            del c_acdc
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            results = list(executor.map(self.get_acdc_data, range(29)))
+        for rms, min_val in results:
+            rms_array.append(rms)
+            min_array.append(min_val)
         return rms_array, min_array
     
     def plot_rms(self):
@@ -343,6 +348,7 @@ class ACDC_analysis():
     def get_plots(self):
         self.plot_rms()
         self.plot_min()
+
 
 
 def main() -> None:
@@ -400,7 +406,7 @@ def main() -> None:
 
     # analyze the full data set
     # ------------------------------------------------------------------------
-    #ana = ACDC_analysis(5)
+    ana = ACDC_analysis(5)
 
     # Plot the RMS of the full set (all 29 files)
     #ana.plot_rms()
@@ -408,14 +414,14 @@ def main() -> None:
     # Plot the Min of the full set (all 29 files)
     #ana.plot_min()
 
-    #ana.get_plots()
+    ana.get_plots()
     contents = os.listdir(OUTPUT)
     if not contents:
         print("The %s directory is empty, run declare the object ACDC_analysis and use get_plots." % OUTPUT)
         sys.exit()
 
     create_latex_file(5, {1, 2, 3, 4, 5, 6}, "../plots","./report/report.tex")
-    os.system("cd ./report && ls -lrt && pdflatex report.tex > /dev/null 2>&1 && find . -maxdepth 1 -name 'report.*' ! -name 'report.pdf' -exec rm {}")
+    os.system("cd ./report && ls -lrt && pdflatex report.tex > /dev/null 2>&1 && find . -maxdepth 1 -name 'report.*' ! -name 'report.pdf' -exec rm {} \;")
 
 if __name__ == "__main__":
     main()
