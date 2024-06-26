@@ -415,7 +415,7 @@ def main() -> None:
         sys.exit()
 
     create_latex_file(5, {1, 2, 3, 4, 5, 6}, "../plots","./report/report.tex")
-    os.system("cd ./report && ls -lrt && pdflatex report.tex > /dev/null 2>&1 && find . -maxdepth 1 -name 'report.*' ! -name 'report.pdf' -exec rm {} \;")
+    os.system("cd ./report && ls -lrt && pdflatex report.tex > /dev/null 2>&1 && find . -maxdepth 1 -name 'report.*' ! -name 'report.pdf' -exec rm {}")
 
 if __name__ == "__main__":
     main()
