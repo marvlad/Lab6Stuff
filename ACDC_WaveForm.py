@@ -409,6 +409,11 @@ def main() -> None:
     #ana.plot_min()
 
     #ana.get_plots()
+    contents = os.listdir(OUTPUT)
+    if not contents:
+        print("The %s directory is empty, run declare the object ACDC_analysis and use get_plots.")
+        sys.exit()
+
     create_latex_file(5, {1, 2, 3, 4, 5, 6}, "../plots","./report/report.tex")
     os.system("cd ./report && ls -lrt && pdflatex report.tex > /dev/null 2>&1 && find . -maxdepth 1 -name 'report.*' ! -name 'report.pdf' -exec rm {} \;")
 
