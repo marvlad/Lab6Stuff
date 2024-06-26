@@ -20,7 +20,7 @@ import sys
 # Suppress the specific MatplotlibDeprecationWarning
 warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
 
-BASE_PATH = '/Users/marvinascenciososa/Desktop/mezzanine/data/'
+BASE_PATH = '/data/'
 ACDC_name = 'acdc_0'
 OUTPUT = './plots/'
 REPORT = './report/'
