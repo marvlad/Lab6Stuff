@@ -12,6 +12,6 @@ RUN apt install python3-tqdm -y
 RUN apt install vim -y
 RUN apt install texlive-fonts-extra -y
 RUN mkdir -p /acdc
-RUN cd /acdc && wget https://raw.githubusercontent.com/marvlad/Lab6Stuff/main/ACDC_WaveForm.py
+RUN cd /acdc && wget https://raw.githubusercontent.com/marvlad/Lab6Stuff/main/acdc/ACDC_WaveForm.py
 
 EXPOSE 22
