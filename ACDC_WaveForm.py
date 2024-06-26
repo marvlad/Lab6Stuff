@@ -15,6 +15,7 @@ from tqdm import tqdm
 import warnings
 from matplotlib import MatplotlibDeprecationWarning
 import os
+import sys
 
 # Suppress the specific MatplotlibDeprecationWarning
 warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
@@ -22,6 +23,7 @@ warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
 BASE_PATH = '_you_path_here_'
 ACDC_name = 'acdc_0'
 OUTPUT = './plots/'
+REPORT = './report/'
 
 mezzanine_id = [24,25,26,27,28,29,18,19,20,21,22,23,12,13,14,15,16,17,6,7,8,9,10,11,0,1,2,3,4]
 
@@ -344,11 +346,25 @@ class ACDC_analysis():
 
 
 def main() -> None:
+    if os.path.isdir(BASE_PATH):
+        print(f"The input directory '{BASE_PATH}' exists ")
+    else:
+        print(f"The input directory '{BASE_PATH}' does not exist. Please fix it to continue...")
+        sys.exit()
+
+    if not os.path.isdir(OUTPUT):
+        os.makedirs(OUTPUT, exist_ok=True)
+        print(f"The directory '{OUTPUT}' was created.")
+
+    if not os.path.isdir(REPORT):
+        os.makedirs(REPORT, exist_ok=True)
+        print(f"The directory '{REPORT}' was created.")
+    
     # arg events, = int(sys.argv[1])
 
     # Examples for simple data set
 
-    # analyze a single data set
+    # analize single data set
     # ------------------------------------------------------------------------
     #output_n = "./Scan_events"
     # Get the ACDC data <arg> (ACDC board_id, signal_in_mezzanine_channel)
@@ -381,7 +397,7 @@ def main() -> None:
     #my_acdc.full_channel_Min('./test.pdf')
     
     #my_acdc.full_channel_eventScan('./test.pdf', 10)
-    # analyze the full data set
+    # analize full data set
     # ------------------------------------------------------------------------
     #ana = ACDC_analysis(5)
 
@@ -393,7 +409,7 @@ def main() -> None:
 
     #ana.get_plots()
     create_latex_file(5, {1, 2, 3, 4, 5, 6}, "../plots","./report/report.tex")
-    os.system("cd ./report && ls -lrt && pdflatex report.tex && open report.pdf")
+    os.system("cd ./report && ls -lrt && pdflatex report.tex > /dev/null 2>&1 && find . -maxdepth 1 -name 'report.*' ! -name 'report.pdf' -exec rm {} \;")
 
 if __name__ == "__main__":
     main()
