@@ -22,7 +22,7 @@ import concurrent.futures
 warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
 
 BASE_PATH = '/data/'
-ACDC_name = 'acdc_0'
+ACDC_name = 'ACDC'
 OUTPUT = './plots/'
 REPORT = './report/'
 
@@ -72,6 +72,16 @@ def create_latex_file(number, sections, plots_directory, output):
 """
     with open(output, "w") as file:
         file.write(content)
+
+def make_report(OUTPUT, ACDC_id):
+    contents = os.listdir(OUTPUT)
+    if not contents:
+        print("The %s directory is empty, run declare the object ACDC_analysis and use get_plots." % OUTPUT)
+        sys.exit()
+
+    create_latex_file(ACDC_id, {1, 2, 3, 4, 5, 6}, "../plots","./report/report.tex")
+    os.system(r"cd ./report && ls -lrt && pdflatex report.tex > /dev/null 2>&1 && find . -maxdepth 1 -name 'report.*' ! -name 'report.pdf' -exec rm {} \;")
+
 
 def Plot1D(data, title, xl, yl, filename, show):
     plt.plot(data)
@@ -209,7 +219,6 @@ class ACDC:
         return fig
     
     def event_displaypdf(self, nevent, output_name):
-        plt.switch_backend('Agg') 
         with pdfPages(output_name+".pdf") as pdf:
             progress_bar = tqdm(total=nevent, desc="Progress", unit="iteration")
             for i in range(nevent):
@@ -263,7 +272,6 @@ class ACDC:
         return arr
 
     def full_channel_RMS(self, filename):
-        plt.switch_backend('Agg')
         print(filename)
         fig, axs = plt.subplots(5, 6, figsize=(20, 15))  # Adjust figsize as needed
         axs = axs.flatten()
@@ -276,7 +284,6 @@ class ACDC:
         plt.close()
 
     def full_channel_Min(self, filename):
-        plt.switch_backend('Agg')
         print(filename)
         fig, axs = plt.subplots(5, 6, figsize=(20, 15))  # Adjust figsize as needed
         axs = axs.flatten()
@@ -289,7 +296,6 @@ class ACDC:
         plt.close()
 
     def full_channel_eventScan(self, filename, nevents):
-        plt.switch_backend('Agg')
         print(filename)
         fig, axs = plt.subplots(5, 6, figsize=(20, 15))  # Adjust figsize as needed
         axs = axs.flatten()
@@ -309,7 +315,7 @@ class ACDC:
         self.full_channel_RMS(output_rms_names)
         self.full_channel_Min(output_min_names)
         self.full_channel_eventScan(name_ch_events, nevents)
-        print('ploting %i event displays' % nevents)
+        print('ploting %i event display, mezzanine channel %i ' % (nevents, self.channel))
         for ev_id in range(1, 20):
             name_evD = OUTPUT + 'EventDisplay_%i_ACDC_%i_MCh_%i.pdf' %(ev_id, self.board, self.channel)
             self.event_display(ev_id, name_evD, 2) 
@@ -349,7 +355,7 @@ class ACDC_analysis:
         self.plot_min()
 
 
-def main() -> None:
+def main(ACDC_id) -> None:
     if os.path.isdir(BASE_PATH):
         print(f"The input directory '{BASE_PATH}' exists ")
     else:
@@ -363,8 +369,6 @@ def main() -> None:
     if not os.path.isdir(REPORT):
         os.makedirs(REPORT, exist_ok=True)
         print(f"The directory '{REPORT}' was created.")
-    
-    # arg events, = int(sys.argv[1])
 
     # Examples for simple data set
 
@@ -372,7 +376,7 @@ def main() -> None:
     # ------------------------------------------------------------------------
     #output_n = "./Scan_events"
     # Get the ACDC data <arg> (ACDC board_id, signal_in_mezzanine_channel)
-    #my_acdc = ACDC(35,0)
+    #my_acdc = ACDC(ACDC_id,0)
 
     # Plot a single event <arg> (event_id)
     #my_acdc.plot_event(1)
@@ -404,7 +408,7 @@ def main() -> None:
 
     # analyze the full data set
     # ------------------------------------------------------------------------
-    ana = ACDC_analysis(5)
+    ana = ACDC_analysis(ACDC_id)
 
     # Plot the RMS of the full set (all 29 files)
     #ana.plot_rms()
@@ -413,13 +417,9 @@ def main() -> None:
     #ana.plot_min()
 
     ana.get_plots()
-    contents = os.listdir(OUTPUT)
-    if not contents:
-        print("The %s directory is empty, run declare the object ACDC_analysis and use get_plots." % OUTPUT)
-        sys.exit()
 
-    create_latex_file(5, {1, 2, 3, 4, 5, 6}, "../plots","./report/report.tex")
-    os.system(r"cd ./report && ls -lrt && pdflatex report.tex > /dev/null 2>&1 && find . -maxdepth 1 -name 'report.*' ! -name 'report.pdf' -exec rm {} \;")
+    make_report(OUTPUT, ACDC_id)
 
 if __name__ == "__main__":
-    main()
+    arg = int(sys.argv[1])
+    main(arg)
