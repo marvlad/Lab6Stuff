@@ -20,7 +20,7 @@ docker exec -it my_acdc /bin/bash
 Finally
 Get the terminal and run the script 
 ```javascript
-cd /acdc && python3 ACDC_WaveForm.py 
+cd /acdc && python3 ACDC_WaveForm.py [# ACDC]
 ```
 
 The output will show up in the `report` directory
