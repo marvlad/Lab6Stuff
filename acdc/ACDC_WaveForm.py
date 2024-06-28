@@ -25,6 +25,9 @@ BASE_PATH = '/data/'
 ACDC_name = 'ACDC'
 OUTPUT = './plots/'
 REPORT = './report/'
+PEDESTAL = 'pedestal'
+CHANNELS = 'channels'
+
 
 mezzanine_id = [24,25,26,27,28,29,18,19,20,21,22,23,12,13,14,15,16,17,6,7,8,9,10,11,0,1,2,3,4]
 
@@ -136,17 +139,39 @@ class ACDC:
         self.data = self.get_corrected_wf()
 
     def get_corrected_wf(self):
+        global BASE_PATH, ACDC_name, PEDESTAL
+        if self.board < 10:
+            ACDC_name = 'ACDC0'
+
+        ACDC_PATH = BASE_PATH + ACDC_name + str(self.board)
+
+        try:
+            cnt = os.listdir(ACDC_PATH)
+            print(f"Contents of the directory: {cnt}")
+
+            if 'peds' in cnt:
+                PEDESTAL = 'peds'
+            elif 'pedestal' in cnt:
+                PEDESTAL = 'pedestal'
+
+            print(f"PEDESTAL variable is set to: {PEDESTAL}")
+            
+        except FileNotFoundError:
+            print(f"The directory {ACDC_PATH} does not exist.")
+
         print("Loadding data from %s, ACDC %s, channel %s " % (BASE_PATH, self.board, self.channel)) 
 
         # Calculate pedestals
-        pedestal_files = sorted(glob(BASE_PATH + '%s%i/pedestal/*.txt' % (ACDC_name,self.board)))
+        pedestal_files = sorted(glob(BASE_PATH + '%s%i/%s/*.txt' % (ACDC_name, self.board, PEDESTAL)))
+        print(BASE_PATH + '%s%i/%s/*.txt' % (ACDC_name, self.board, PEDESTAL))
         kwargs = {'header': None, 'delimiter': ' ', 'usecols': range(1,31)}
         d = np.vstack([pd.read_csv(x, **kwargs).values for x in pedestal_files[:1]])
         d = d.reshape(int(len(d) / 256), 256, 30)
         peds = np.mean(d, axis=0) 
 
         # Channel data
-        input_files = sorted(glob(BASE_PATH + '%s%i/channels/*.txt' % (ACDC_name,self.board)))
+        input_files = sorted(glob(BASE_PATH + '%s%i/%s/*.txt' % (ACDC_name,self.board, CHANNELS)))
+        print(BASE_PATH + '%s%i/%s/*.txt' % (ACDC_name,self.board, CHANNELS))
         d = pd.read_csv(input_files[self.channel], **kwargs).values
         #print(input_files[self.channel])
         d.shape = (int(len(d) / 256), 256, 30)
@@ -356,6 +381,9 @@ class ACDC_analysis:
 
 
 def main(ACDC_id) -> None:
+
+    global ACDC_name
+
     if os.path.isdir(BASE_PATH):
         print(f"The input directory '{BASE_PATH}' exists ")
     else:
@@ -369,6 +397,18 @@ def main(ACDC_id) -> None:
     if not os.path.isdir(REPORT):
         os.makedirs(REPORT, exist_ok=True)
         print(f"The directory '{REPORT}' was created.")
+    
+    if ACDC_id < 10:
+        ACDC_name = 'ACDC0'
+
+    ACDC_PATH = BASE_PATH + ACDC_name + str(ACDC_id) 
+
+    if os.path.isdir(ACDC_PATH):
+        print(f"The input directory '{ACDC_PATH}' exists ")
+    else:
+        print(f"The input directory '{ACDC_PATH}' does not exist. Please fix it to continue...")
+        sys.exit()
+
 
     # Examples for simple data set
 
@@ -409,15 +449,7 @@ def main(ACDC_id) -> None:
     # analyze the full data set
     # ------------------------------------------------------------------------
     ana = ACDC_analysis(ACDC_id)
-
-    # Plot the RMS of the full set (all 29 files)
-    #ana.plot_rms()
-
-    # Plot the Min of the full set (all 29 files)
-    #ana.plot_min()
-
     ana.get_plots()
-
     make_report(OUTPUT, ACDC_id)
 
 if __name__ == "__main__":
