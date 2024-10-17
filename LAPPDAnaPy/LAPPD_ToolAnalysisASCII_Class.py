@@ -16,7 +16,6 @@ strip_index = [0, 5, 4, 3, 2, 1, 12, 11, 10, 9, 8, 7, 18, 17, 16, 15, 45, 44, 55
 index_original = np.array(full_index0)
 index_strip    = np.array(strip_index)
 
-
 class LAPPD:
     def __init__(self, data, pedestals) -> None:
         self.data = data
@@ -44,15 +43,16 @@ class LAPPD:
         return self.event_data
     
     def PedestalSubtraction(self):
-       pedestal1 = self.load_file(self.pedestals[0]) 
-       pedestal2 = self.load_file(self.pedestals[1]) 
+        pedestal1 = self.load_file(self.pedestals[0]) 
+        pedestal2 = self.load_file(self.pedestals[1]) 
        
-       # reshape the pedestal data to match the shape of the event data
-       pedestal1_values = pedestal1.values.reshape(1, -1, 30).astype(float)
-       pedestal2_values = pedestal2.values.reshape(1, -1, 30).astype(float)
+        # reshape the pedestal data to match the shape of the event data
+        pedestal1_values = pedestal1.values.reshape(1, -1, 30).astype(float)
+        pedestal2_values = pedestal2.values.reshape(1, -1, 30).astype(float)
 
-       self.event_data[:, :, 1:31] -= pedestal1_values
-       self.event_data[:, :, 32:62] -= pedestal2_values
+        self.event_data[:, :, 1:31] -= pedestal1_values
+        self.event_data[:, :, 32:62] -= pedestal2_values
+        print("Done Pedestal Substraction")
 
        #return self.event_data 
 
@@ -62,6 +62,7 @@ class LAPPD:
         self.event_data[:, :, 1:31]  = np.multiply(self.event_data[:, :, 1:31],-0.3) 
         self.event_data[:, :, 32:62] = np.multiply(self.event_data[:, :, 32:62],-0.3)
         #return self.event_data
+        print("Done Converting to Voltage")
 
     def ACDCmetaCorrection(self):
         # Reorder ACDC meta 
@@ -90,25 +91,94 @@ class LAPPD:
         # Use advanced indexing to roll the event_data array
         self.event_data = self.event_data[np.arange(len(-shift_global))[:, None], rolled_indices]
         #return self.event_data
+        print("Done Metadata correction")
 
     def ACDC2Strip(self):
         # --------------------------------------------------------------------------------------------------
         # ACDC channels index to Strip index
         self.event_data = self.event_data[:, :, strip_index]
-        #return self.event_data 
+        print("Done mapping ACDC to Strip") 
 
     def BaselineCorrection(self):
         # --------------------------------------------------------------------------------------------------
         # Baseline correction
+        # ToDo: Arbitrary it is set the mean from 200ns to 220ns
         # Calculate the baseline for each row
         #baseline1 = np.mean(event_data[:,0:255,1:31], axis=1, keepdims=True)
-        baseline1 = np.mean(self.event_data[:,100:120,1:31], axis=1, keepdims=True)
+        #baseline1 = np.mean(self.event_data[:,100:120,1:31], axis=1, keepdims=True)
+        baseline1 = np.mean(self.event_data[:,200:220,1:31], axis=1, keepdims=True)
         self.event_data[:, :, 1:31] -= baseline1 
 
         #baseline2 = np.mean(event_data[:,0:255,32:62], axis=1, keepdims=True)
-        baseline2 = np.mean(self.event_data[:,100:120,32:62], axis=1, keepdims=True)
-        self.event_data[:, :, 32:62] -= baseline2 
-        #return self.event_data
+        #baseline2 = np.mean(self.event_data[:,100:120,32:62], axis=1, keepdims=True)
+        baseline2 = np.mean(self.event_data[:,200:220,32:62], axis=1, keepdims=True)
+        self.event_data[:, :, 32:62] -= baseline2
+        print("Done Baseline Substraction")
+
+
+    def FFT(self, cutoff_frequency=50):
+        sampling_rate = 256  # Adjust according to your actual sampling rate
+        #cutoff_frequency = 50  # Cutoff frequency in Hz
+        filtered_waveforms1 = np.zeros_like(self.event_data[:, :, 1:31])
+        filtered_waveforms2 = np.zeros_like(self.event_data[:, :, 32:62])
+
+        for i in range(self.event_data[:, :, 1:31].shape[0] - 2):
+            for j in range(self.event_data[:, :, 1:31].shape[2]):
+                ct = i + 1
+                cj = j + 1
+
+                waveform = np.array(self.event_data[ct:ct+1, :, cj:cj+1],dtype=float).flatten()
+
+                if len(waveform) == 0:
+                    print(ct,":",ct+1," waveform is empty. Cannot perform FFT.", cj,":",cj+1)
+                else:
+                    fft_result = np.fft.fft(waveform)
+
+                # Create the filter
+                freqs = np.fft.fftfreq(len(waveform), d=1/sampling_rate)
+                filter_mask = np.abs(freqs) < cutoff_frequency
+
+                # Apply the filter
+                filtered_fft_result = fft_result * filter_mask
+
+                # Inverse FFT to get back to time domain
+                filtered_waveform = np.fft.ifft(filtered_fft_result)
+
+                # Store the filtered waveform
+                filtered_waveforms1[i, :, j] = filtered_waveform.real
+
+        
+        for i in range(self.event_data[:, :, 32:62].shape[0] - 2):
+            for j in range(self.event_data[:, :, 32:62].shape[2]):
+                ct = i + 1
+                cj = 31 + j + 1
+
+                waveform = np.array(self.event_data[ct:ct+1, :, cj:cj+1],dtype=float).flatten()
+
+                if len(waveform) == 0:
+                    print(ct,":",ct+1," waveform is empty. Cannot perform FFT.", cj,":",cj+1)
+                else:
+                    fft_result = np.fft.fft(waveform)
+
+                # Create the filter
+                freqs = np.fft.fftfreq(len(waveform), d=1/sampling_rate)
+                filter_mask = np.abs(freqs) < cutoff_frequency
+
+                # Apply the filter
+                filtered_fft_result = fft_result * filter_mask
+
+                # Inverse FFT to get back to time domain
+                filtered_waveform = np.fft.ifft(filtered_fft_result)
+
+                # Store the filtered waveform
+                filtered_waveforms2[i, :, j] = filtered_waveform.real
+        
+        self.event_data[:, :, 1:31] = filtered_waveforms1
+        self.event_data[:, :, 32:62] = filtered_waveforms2
+        print(f"Done FFT with cutoff_frequency of {cutoff_frequency}")
+
+    
+    #---------------------- plotting stuff -----------------------------------------------------------------
     
     def get_event(self, event_id, side, spare_channels):
         if side == 0:
@@ -165,6 +235,7 @@ class LAPPD:
         ax.set_ylabel('Amplitude [mV]')
 
     def display_event(self, event_id, spare_channels, show_display):
+        plt.style.use(['dark_background'])
         if show_display == 0:
             plt.switch_backend('Agg')
 
@@ -203,7 +274,6 @@ class LAPPD:
                 progress_bar.update(1)
             progress_bar.close()
             print("Plotting done....")
-
 
 def main() -> None:
     nevents  = int(sys.argv[1])
