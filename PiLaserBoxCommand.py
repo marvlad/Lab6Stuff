@@ -28,7 +28,8 @@ ser.write((command + "\n").encode('utf-8'))
 
 # Read the response
 while True:
-        response = ser.readline().decode('utf-8').strip()
+        #response = ser.readline().decode('utf-8').strip()
+        response = ser.readline().decode('latin1').strip()
         if not response:  # Break the loop if no more data is received
                 break
         #print("Controller Serial Number:", response)
