@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# M. Ascencio-Sosa (mascencio@fnal.gov), Mar, 2025
+
 import serial
 import sys
 import os
