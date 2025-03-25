@@ -1,6 +1,3 @@
-#!/usr/bin/python
-# M. Ascencio-Sosa (mascencio@fnal.gov), Mar, 2025
-
 import serial
 import sys
 import os
@@ -9,13 +6,15 @@ serial_port = '/dev/ttyUSB0'
 if not os.path.exists(serial_port):
     print("ERROR: Serial port /dev/ttyUSB0 not detected. The laser box is not powered or the USB is not connected.")
     sys.exit(1)
-print("*** Welcome to Picosecond Laser System ***")
+
+#print("*** Welcome to Picosecond Laser System ***")
 
 # Open the serial port
-ser = serial.Serial(serial_port, 19200, timeout=1)  
+ser = serial.Serial(serial_port, 19200, timeout=1)
 
 # Check if a command was provided as an argument
 if len(sys.argv) < 2:
+         print("*** Welcome to Picosecond Laser System ***")
          print("Use: PiLaserBoxCommand \"<command>\"")
          #print("Example: PiLaserBoxCommand \"help?\"")
          #sys.exit(1)
