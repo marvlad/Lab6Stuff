@@ -233,6 +233,12 @@ class ACDC:
 
 
 if __name__ == "__main__":
+    if len(sys.argv) < 4:  # Check if there are fewer than 3 arguments
+        print("Usage: python script.py <ped_path> <data_path> <nevents>")
+        print("Example: python3 script.py /the/path/pedestal /the/path/data 100")
+        print("WARNING: Do NOT add the files '.txt' only the paths")
+        sys.exit(1)  # Exit with an error code
+        
     ped_path = str(sys.argv[1])
     data_path = str(sys.argv[2])
     nevents = int(sys.argv[3])
