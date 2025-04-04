@@ -97,11 +97,10 @@ if __name__ == "__main__":
                 sys.exit(1)
     
             processor.event_display_pdf(nevent, output_name)
-            #os.system("xdg-open ./output.pdf") 
-            os.system("open ./output.pdf") 
+            os.system("xdg-open ./output.pdf") 
+            #os.system("open ./output.pdf") 
             print(f"Saved PDF with {min(nevent, processor.data.shape[0])} events to {output_name}.pdf")
         except ValueError:
             print("Error: NEVENT must be an integer")
             print("Example: python SimpleScope.py data.txt --plot 5")
-            sys.exit(1)
-~                          
+            sys.exit(1)                       
