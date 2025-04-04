@@ -6,7 +6,7 @@ from itertools import count
 from re import I
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt 
 from glob import glob
 from matplotlib.backends.backend_pdf import PdfPages
 from scipy.signal import find_peaks
@@ -15,7 +15,7 @@ from tqdm import tqdm
 import warnings
 from matplotlib import MatplotlibDeprecationWarning
 import os
-import sys
+import sys 
 import concurrent.futures
 
 # Suppress the specific MatplotlibDeprecationWarning
@@ -99,7 +99,7 @@ def Plot1D(data, title, xl, yl, filename, show):
         plt.savefig(filename, dpi=150)
 
     plt.close()
-    return plt
+    return plt 
 
 def Plot2D(data, title, xl, yl, zl, ed, filename):
     print("print...")
@@ -130,7 +130,7 @@ def Plot1D_hist(arr, nbins, title, xl, yl, filename, show):
         plt.savefig(filename)
     
     plt.close()
-    return plt
+    return plt 
 
 class ACDC:
     def __init__(self, pedestal_path, data_path)-> None:
@@ -144,7 +144,7 @@ class ACDC:
         print(self.pedestal_path + '/*.txt')
         kwargs = {'header': None, 'delimiter': ' ', 'usecols': range(1,31)}
         d = np.vstack([pd.read_csv(x, **kwargs).values for x in pedestal_files[:1]])
-        d = d.reshape(int(len(d) / 256), 256, 30)
+        d = d.reshape(int(len(d) / 256), 256, 30) 
         peds = np.mean(d, axis=0) 
 
         # Channel data
@@ -152,7 +152,7 @@ class ACDC:
         print(self.data_path + '/*.txt')
         d = pd.read_csv(input_files[0], **kwargs).values
         #print(input_files[self.channel])
-        d.shape = (int(len(d) / 256), 256, 30)
+        d.shape = (int(len(d) / 256), 256, 30) 
 
         # Pedestal and baseline subtraction (see notes below on algorithm)
         d = d - peds
@@ -165,31 +165,31 @@ class ACDC:
         # Align the waveforms, approximately
         dst = ds[:,:,5].copy()
         dt = dst - np.roll(dst, 1, axis=1)
-        dst[(dt<-10)] = 0
+        dst[(dt<-10)] = 0 
         r = 128 - np.argmax(np.abs(dst - 0.35 * np.min(dst, axis=1)[:,np.newaxis]), axis=1)
         ri, ci = np.ogrid[:dst.shape[0], :dst.shape[1]]
         r[r<0] += dst.shape[1]
         ci = ci - r[:,np.newaxis]
         dss = ds[ri,ci]
 
-        return dss
+        return dss 
 
     def plot_event(self, event_id):
         e_id = slice(event_id, event_id + 1)
-        Plot2D(self.data[e_id,:,0:30].T, 'Event %i' % event_id, 'Time [ns]', 'ACDC Channels', 'Amplitude [mV]', 1)
+        Plot2D(self.data[e_id,:,0:30].T, 'Event %i' % event_id, 'Sampling #', 'ACDC Channels', 'Amplitude [mV]', 1)
     
     def plot_event_ACDCchannel(self, event_id, acdc_channel, filename, show):
         e_id = slice(event_id, event_id + 1)
-        Plot1D(self.data[e_id,:,acdc_channel].swapaxes(0,1), plt.title('Event %i' % event_id), 'Time [ns]', 'Amplitude [mV]', filename, show) 
-     
+        Plot1D(self.data[e_id,:,acdc_channel].swapaxes(0,1), plt.title('Event %i' % event_id), 'Sampling #', 'Amplitude [mV]', filename, show) 
+    
     def plot_events_ACDCchannel(self, event1, event2, acdc_channel, filename, show):
         e_id = slice(event1, event2)
-        Plot1D(self.data[e_id,:,acdc_channel].swapaxes(0,1), 'ACDC %i, %i, Events from %i to %i' % (self.board, acdc_channel, event1,event2), 'Time [ns]', 'Amplitude [mV]', filename, show)
+        Plot1D(self.data[e_id,:,acdc_channel].swapaxes(0,1), 'ACDC %i, %i, Events from %i to %i' % (self.board, acdc_channel, event1,event2), 'Sampling #', 'Amplitude [mV]', filename, show)
 
     def event_display(self, event_id, filename, show_event):
         plt.switch_backend('Agg')
         # Create a figure with two subplots side by side
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6)) 
 
         # Plot for function 'a' on the first subplot
         e_id = slice(event_id, event_id + 1)
@@ -198,19 +198,20 @@ class ACDC:
         cbar.set_label('Amplitude [mV]')
         ax1.grid(True)
         ax1.set_title('Event %i' % event_id)
-        ax1.set_xlabel('Time [ns]')
+        ax1.set_xlabel('Sampling #')
         ax1.set_ylabel('ACDC Channels')
 
         # Plot for function 'b' on the second subplot
         for i in range(self.data.shape[2]):
-            ax2.plot(self.data[e_id, :, i].swapaxes(0, 1))
+            ax2.plot(self.data[e_id, :, i].swapaxes(0, 1), linewidth=4)
         ax2.grid(True, linestyle='--')
         ax2.set_title('Event %i' % event_id)
-        ax2.set_xlabel('Time [ns]')
+        ax2.set_xlabel('Sampling #')
         ax2.set_ylabel('Amplitude [mV]')
 
         # Adjust layout to prevent overlap
         plt.tight_layout()
+        plt.style.use('dark_background')
 
         # Show the plot
         if show_event == 1:
@@ -219,7 +220,7 @@ class ACDC:
         if show_event == 2:
            plt.savefig(filename) 
         plt.close()
-        return fig
+        return fig 
     
     def event_displaypdf(self, nevent, output_name):
         with PdfPages(output_name+".pdf") as pdf:
@@ -238,3 +239,4 @@ if __name__ == "__main__":
 
     myACDC = ACDC(ped_path, data_path)
     myACDC.event_displaypdf(nevents, './scope')
+    os.system("xdg-open ./scope.pdf")
