@@ -25,7 +25,9 @@ show_oscilloscope(){
     echo "file time: '$filetime'"
     echo "diff time: '$diff'"
     if [ "$diff" -lt $1 ]; then
-        echo "hello"
+        echo "You have a new file!"
+        SimpleScope.py $path_last_file --voltage --baseline --plot 10
+        rm -f $path_last_file
     else
         echo "Sorry, I can't find a new file." 
     fi
